@@ -1,6 +1,7 @@
 import { computed, createApp, ref } from 'vue'
 
 const BOARD_SIZE = 16
+const PAIRS_COUNT = BOARD_SIZE / 2
 const SYMBOL_POOL = [
   '🐶', '🐱', '🐸', '🦊', '🐼', '🦁', '🐨', '🐵', '🐙', '🐬',
   '🦄', '🦋', '🌸', '🍀', '🍓', '🍉', '⚡', '🔥', '⭐', '🌙'
@@ -19,8 +20,7 @@ createApp({
       .map(({ value }) => value)
 
     const setupGame = () => {
-      const pairCount = BOARD_SIZE / 2
-      const symbols = shuffle(SYMBOL_POOL).slice(0, pairCount)
+      const symbols = shuffle(SYMBOL_POOL).slice(0, PAIRS_COUNT)
       cards.value = shuffle([...symbols, ...symbols]).map((emoji, index) => ({
         id: index,
         emoji,
@@ -30,6 +30,29 @@ createApp({
       openedCards.value = []
       turns.value = 0
       lockBoard.value = false
+    }
+
+    const closeOpenedCards = () => {
+      const [first, second] = openedCards.value
+      if (!first || !second) return
+
+      setTimeout(() => {
+        first.isFlipped = false
+        second.isFlipped = false
+        openedCards.value = []
+        lockBoard.value = false
+      }, 850)
+    }
+
+    const hideMatchedCards = () => {
+      const [first, second] = openedCards.value
+      if (!first || !second) return
+
+      setTimeout(() => {
+        first.isMatched = true
+        second.isMatched = true
+        openedCards.value = []
+      }, 220)
     }
 
     const flipCard = (card) => {
@@ -42,20 +65,14 @@ createApp({
 
       turns.value += 1
       const [first, second] = openedCards.value
+
       if (first.emoji === second.emoji) {
-        first.isMatched = true
-        second.isMatched = true
-        openedCards.value = []
+        hideMatchedCards()
         return
       }
 
       lockBoard.value = true
-      setTimeout(() => {
-        first.isFlipped = false
-        second.isFlipped = false
-        openedCards.value = []
-        lockBoard.value = false
-      }, 900)
+      closeOpenedCards()
     }
 
     const matchedCount = computed(() => cards.value.filter((card) => card.isMatched).length)
@@ -81,11 +98,12 @@ createApp({
             v-for="card in cards"
             :key="card.id"
             class="tile"
+            :class="{ matched: card.isMatched }"
             type="button"
             @click="flipCard(card)"
           >
-            <span class="tile-inner" :class="{ flipped: card.isFlipped || card.isMatched }">
-              <span class="tile-face tile-front">?</span>
+            <span class="tile-inner" :class="{ flipped: card.isFlipped }">
+              <span class="tile-face tile-front">🂠</span>
               <span class="tile-face tile-back">{{ card.emoji }}</span>
             </span>
           </button>
